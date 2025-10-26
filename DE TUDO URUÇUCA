@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>De Tudo Uruçuca - Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            box-sizing: border-box;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .product-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .image-nav-btn {
+            transition: all 0.2s ease;
+        }
+        .image-nav-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
+        }
+        .section-indicator {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col bg-gray-50">
+    <!-- Header -->
+    <header class="p-4 bg-amber-400 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-4">
+            <h1 class="text-3xl font-bold">🏪 De Tudo Uruçuca</h1>
+            <div class="flex items-center gap-3 flex-wrap">
+                <input
+                    id="searchInput"
+                    placeholder="Busque por produto, descrição ou preço..."
+                    class="px-4 py-2 rounded-lg text-black w-64 focus:outline-none focus:ring-2 focus:ring-amber-600"
+                />
+                <button
+                    id="adminBtn"
+                    class="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                    👤 Admin
+                </button>
+                <button
+                    id="logoutBtn"
+                    class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-medium transition-colors hidden"
+                >
+                    🚪 Sair
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-6xl mx-auto w-full p-6">
+        <!-- Admin Status -->
+        <div id="adminStatus" class="hidden mb-6 p-4 bg-green-100 border border-green-300 rounded-lg">
+            <p class="text-green-800 font-medium">✅ Modo Administrador Ativo - Você pode adicionar, editar e excluir anúncios</p>
+        </div>
+
+        <!-- Add Product Form (Admin Only) -->
+        <div id="addProductForm" class="hidden mb-8 bg-white p-6 rounded-xl shadow-lg border">
+            <h2 class="text-2xl font-bold text-amber-700 mb-4">📝 Adicionar/Editar Anúncio</h2>
+            <form id="productForm" class="space-y-4">
+                <div>
+                    <label for="productTitle" class="block text-sm font-medium text-gray-700 mb-1">Título do Anúncio</label>
+                    <input
+                        type="text"
+                        id="productTitle"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="Ex: Casa 3 quartos no centro"
+                    />
+                </div>
+                <div>
+                    <label for="productDesc" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                    <textarea
+                        id="productDesc"
+                        rows="3"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="Descreva o produto ou imóvel..."
+                    ></textarea>
+                </div>
+                <div>
+                    <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-1">Preço</label>
+                    <input
+                        type="text"
+                        id="productPrice"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="Ex: R$ 2.500,00 ou R$ 800,00/mês"
+                    />
+                </div>
+                <div>
+                    <label for="productPhone" class="block text-sm font-medium text-gray-700 mb-1">Telefone para Contato</label>
+                    <input
+                        type="tel"
+                        id="productPhone"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="Ex: (73) 99999-9999"
+                    />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">📸 Fotos Organizadas por Ambiente/Seção</label>
+                    
+                    <!-- Photo Sections Container -->
+                    <div id="photoSections" class="space-y-4">
+                        <!-- Sections will be added here -->
+                    </div>
+                    
+                    <!-- Add Section Button -->
+                    <button
+                        type="button"
+                        id="addPhotoSection"
+                        class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        ➕ Adicionar Nova Seção
+                    </button>
+                    
+                    <p class="text-xs text-gray-500 mt-2">💡 Organize as fotos por ambiente: Sala, Quarto, Cozinha, Garagem, Fachada, etc.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button
+                        type="submit"
+                        class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    >
+                        💾 Salvar Anúncio
+                    </button>
+                    <button
+                        type="button"
+                        id="cancelEdit"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors hidden"
+                    >
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">🛍️ Produtos e Imóveis Disponíveis</h2>
+            <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Products will be inserted here -->
+            </div>
+            <div id="noProducts" class="text-center py-12 text-gray-500">
+                <div class="text-6xl mb-4">📦</div>
+                <p class="text-xl">Nenhum produto encontrado</p>
+                <p class="text-sm mt-2">Seja o primeiro a adicionar um anúncio!</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white p-6 mt-auto">
+        <div class="max-w-6xl mx-auto text-center">
+            <h3 class="text-xl font-bold mb-2">🏢 De Tudo Uruçuca</h3>
+            <p class="text-gray-300 mb-2">Seu marketplace local de confiança</p>
+            <p class="text-sm text-gray-400">
+                📍 Uruçuca, Bahia | 📞 (73) 99151-7495 | 📧 aluisb192@hotmail.com
+            </p>
+            <p class="text-xs text-gray-500 mt-4">
+                © 2024 De Tudo Uruçuca. Todos os direitos reservados.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Admin Login Modal -->
+    <div id="adminModal" class="modal">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">🔐 Login de Administrador</h3>
+            <form id="adminForm">
+                <div class="mb-4">
+                    <label for="adminEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                        type="email"
+                        id="adminEmail"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="seu@email.com"
+                    />
+                </div>
+                <div class="mb-6">
+                    <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <input
+                        type="password"
+                        id="adminPassword"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="••••••••"
+                    />
+                </div>
+                <div class="flex gap-3">
+                    <button
+                        type="submit"
+                        class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg font-medium transition-colors"
+                    >
+                        🔓 Entrar
+                    </button>
+                    <button
+                        type="button"
+                        id="closeModal"
+                        class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
+                    >
+                        ❌ Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-red-600 mb-4">🗑️ Confirmar Exclusão</h3>
+            <p class="text-gray-700 mb-6">Tem certeza que deseja excluir este anúncio? Esta ação não pode ser desfeita.</p>
+            <div class="flex gap-3">
+                <button
+                    id="confirmDelete"
+                    class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-medium transition-colors"
+                >
+                    🗑️ Excluir
+                </button>
+                <button
+                    id="cancelDelete"
+                    class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-medium transition-colors"
+                >
+                    ❌ Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Admin credentials
+        const ADMIN_EMAIL = "aluisb192@hotmail.com";
+        const ADMIN_PASSWORD = "w9s6u4w9";
+
+        // State
+        let products = [];
+        let isAdmin = false;
+        let editingProduct = null;
+        let deleteProductId = null;
+        let currentImageIndexes = {};
+        let currentSectionIndexes = {}; // Track current section for each product
+        let sectionCounter = 0;
+        let allPhotos = {}; // Store photos by section
+
+        // DOM elements
+        const searchInput = document.getElementById('searchInput');
+        const adminBtn = document.getElementById('adminBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const adminStatus = document.getElementById('adminStatus');
+        const addProductForm = document.getElementById('addProductForm');
+        const productsGrid = document.getElementById('productsGrid');
+        const noProducts = document.getElementById('noProducts');
+        const adminModal = document.getElementById('adminModal');
+        const deleteModal = document.getElementById('deleteModal');
+
+        // Photo sections management
+        function createPhotoSection(sectionName = '', photos = []) {
+            sectionCounter++;
+            const sectionId = `section-${sectionCounter}`;
+            
+            const sectionDiv = document.createElement('div');
+            sectionDiv.className = 'border border-gray-200 rounded-lg p-4 bg-gray-50';
+            sectionDiv.id = sectionId;
+            
+            sectionDiv.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <input 
+                        type="text" 
+                        placeholder="Nome da seção (ex: Sala, Quarto, Garagem)" 
+                        value="${sectionName}"
+                        class="section-name flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                    />
+                    <button type="button" onclick="removePhotoSection('${sectionId}')" class="ml-3 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm">
+                        🗑️
+                    </button>
+                </div>
+                <div class="mb-3">
+                    <input 
+                        type="file" 
+                        accept="image/*" 
+                        multiple 
+                        class="section-photos w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                        onchange="handleSectionPhotos('${sectionId}', this)"
+                    />
+                    <p class="text-xs text-gray-400 mt-1">Máximo 8 fotos por seção</p>
+                </div>
+                <div class="section-preview hidden">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Fotos desta seção:</p>
+                    <div class="flex flex-wrap gap-2 preview-container">
+                        <!-- Photos will appear here -->
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('photoSections').appendChild(sectionDiv);
+            
+            // If editing and has photos, show them
+            if (photos.length > 0) {
+                allPhotos[sectionId] = photos;
+                displaySectionPhotos(sectionId, photos);
+            }
+            
+            return sectionId;
+        }
+
+        function removePhotoSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                delete allPhotos[sectionId];
+                section.remove();
+            }
+        }
+
+        function handleSectionPhotos(sectionId, input) {
+            const files = Array.from(input.files);
+            if (files.length === 0) return;
+
+            if (files.length > 8) {
+                showMessage('❌ Máximo 8 imagens por seção!', 'error');
+                return;
+            }
+
+            const photos = [];
+            let loadedCount = 0;
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    photos[index] = e.target.result;
+                    loadedCount++;
+                    
+                    if (loadedCount === files.length) {
+                        allPhotos[sectionId] = photos;
+                        displaySectionPhotos(sectionId, photos);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function displaySectionPhotos(sectionId, photos) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            
+            const previewDiv = section.querySelector('.section-preview');
+            const container = section.querySelector('.preview-container');
+            
+            container.innerHTML = photos.map((photo, index) => `
+                <div class="relative">
+                    <img src="${photo}" class="w-16 h-16 object-cover rounded-lg border" alt="Foto ${index + 1}">
+                    <div class="absolute -top-2 -right-2 bg-amber-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                        ${index + 1}
+                    </div>
+                </div>
+            `).join('');
+            
+            previewDiv.classList.remove('hidden');
+        }
+
+        // Navigation functions for organized photos
+        function nextSection(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || !product.photoSections || product.photoSections.length <= 1) return;
+            
+            if (!currentSectionIndexes[productId]) currentSectionIndexes[productId] = 0;
+            currentSectionIndexes[productId] = (currentSectionIndexes[productId] + 1) % product.photoSections.length;
+            currentImageIndexes[productId] = 0; // Reset image index when changing section
+            
+            updateProductDisplay(productId);
+        }
+
+        function prevSection(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || !product.photoSections || product.photoSections.length <= 1) return;
+            
+            if (!currentSectionIndexes[productId]) currentSectionIndexes[productId] = 0;
+            currentSectionIndexes[productId] = currentSectionIndexes[productId] === 0 ? 
+                product.photoSections.length - 1 : currentSectionIndexes[productId] - 1;
+            currentImageIndexes[productId] = 0; // Reset image index when changing section
+            
+            updateProductDisplay(productId);
+        }
+
+        function nextImage(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || !product.photoSections) return;
+            
+            const currentSectionIndex = currentSectionIndexes[productId] || 0;
+            const currentSection = product.photoSections[currentSectionIndex];
+            if (!currentSection || !currentSection.photos || currentSection.photos.length <= 1) return;
+            
+            if (!currentImageIndexes[productId]) currentImageIndexes[productId] = 0;
+            currentImageIndexes[productId] = (currentImageIndexes[productId] + 1) % currentSection.photos.length;
+            
+            updateProductDisplay(productId);
+        }
+
+        function prevImage(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || !product.photoSections) return;
+            
+            const currentSectionIndex = currentSectionIndexes[productId] || 0;
+            const currentSection = product.photoSections[currentSectionIndex];
+            if (!currentSection || !currentSection.photos || currentSection.photos.length <= 1) return;
+            
+            if (!currentImageIndexes[productId]) currentImageIndexes[productId] = 0;
+            currentImageIndexes[productId] = currentImageIndexes[productId] === 0 ? 
+                currentSection.photos.length - 1 : currentImageIndexes[productId] - 1;
+            
+            updateProductDisplay(productId);
+        }
+
+        function updateProductDisplay(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product || !product.photoSections) return;
+            
+            const currentSectionIndex = currentSectionIndexes[productId] || 0;
+            const currentImageIndex = currentImageIndexes[productId] || 0;
+            const currentSection = product.photoSections[currentSectionIndex];
+            
+            if (!currentSection || !currentSection.photos) return;
+            
+            const imgElement = document.getElementById(`img-${productId}`);
+            const counterElement = document.getElementById(`counter-${productId}`);
+            const sectionElement = document.getElementById(`section-${productId}`);
+            
+            if (imgElement && currentSection.photos[currentImageIndex]) {
+                imgElement.src = currentSection.photos[currentImageIndex];
+            }
+            
+            if (counterElement) {
+                counterElement.textContent = `${currentImageIndex + 1}/${currentSection.photos.length}`;
+            }
+            
+            if (sectionElement) {
+                sectionElement.textContent = currentSection.name || `Seção ${currentSectionIndex + 1}`;
+            }
+        }
+
+        // Show message helper
+        function showMessage(text, type = 'success') {
+            const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50`;
+            messageDiv.textContent = text;
+            document.body.appendChild(messageDiv);
+            setTimeout(() => messageDiv.remove(), 3000);
+        }
+
+        // Load products from localStorage
+        function loadProducts() {
+            const saved = localStorage.getItem('detudo_urucuca_products');
+            if (saved) {
+                products = JSON.parse(saved);
+            }
+            renderProducts();
+        }
+
+        // Save products to localStorage
+        function saveProducts() {
+            localStorage.setItem('detudo_urucuca_products', JSON.stringify(products));
+        }
+
+        // Render products
+        function renderProducts() {
+            const query = searchInput.value.toLowerCase();
+            const filtered = products.filter(p => {
+                return p.title.toLowerCase().includes(query) ||
+                       p.desc.toLowerCase().includes(query) ||
+                       (p.price || '').toLowerCase().includes(query) ||
+                       (p.phone || '').toLowerCase().includes(query);
+            });
+
+            if (filtered.length === 0) {
+                productsGrid.style.display = 'none';
+                noProducts.style.display = 'block';
+                return;
+            }
+
+            productsGrid.style.display = 'grid';
+            noProducts.style.display = 'none';
+
+            // Reset indexes for new render
+            currentImageIndexes = {};
+            currentSectionIndexes = {};
+
+            productsGrid.innerHTML = filtered.map(product => {
+                const hasPhotos = product.photoSections && product.photoSections.length > 0 && 
+                                product.photoSections.some(section => section.photos && section.photos.length > 0);
+                
+                if (!hasPhotos) {
+                    return `
+                        <div class="product-card bg-white rounded-xl shadow-lg overflow-hidden border fade-in">
+                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                                <span class="text-6xl">📦</span>
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-bold text-lg text-gray-800 mb-2">${product.title}</h3>
+                                ${product.desc ? `<p class="text-gray-600 text-sm mb-3">${product.desc}</p>` : ''}
+                                ${product.price ? `<p class="text-amber-600 font-bold text-lg mb-3">${product.price}</p>` : ''}
+                                ${product.phone ? `<p class="text-blue-600 font-medium text-sm mb-3">📞 ${product.phone}</p>` : ''}
+                                <p class="text-xs text-gray-400 mb-3">📅 ${new Date(product.createdAt).toLocaleDateString('pt-BR')}</p>
+                                ${isAdmin ? `
+                                    <div class="flex gap-2">
+                                        <button onclick="editProduct(${product.id})" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                                            ✏️ Editar
+                                        </button>
+                                        <button onclick="showDeleteModal(${product.id})" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                                            🗑️ Excluir
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const firstSection = product.photoSections.find(section => section.photos && section.photos.length > 0);
+                const totalPhotos = product.photoSections.reduce((total, section) => total + (section.photos ? section.photos.length : 0), 0);
+                const totalSections = product.photoSections.filter(section => section.photos && section.photos.length > 0).length;
+
+                return `
+                    <div class="product-card bg-white rounded-xl shadow-lg overflow-hidden border fade-in">
+                        <div class="relative w-full h-48 bg-gray-100">
+                            <img src="${firstSection.photos[0]}" alt="${product.title}" class="w-full h-48 object-cover" id="img-${product.id}">
+                            
+                            <!-- Section Navigation -->
+                            ${totalSections > 1 ? `
+                                <button onclick="prevSection(${product.id})" class="image-nav-btn absolute left-2 top-6 bg-black bg-opacity-50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                                    ‹‹
+                                </button>
+                                <button onclick="nextSection(${product.id})" class="image-nav-btn absolute right-2 top-6 bg-black bg-opacity-50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                                    ››
+                                </button>
+                            ` : ''}
+                            
+                            <!-- Image Navigation -->
+                            ${firstSection.photos.length > 1 ? `
+                                <button onclick="prevImage(${product.id})" class="image-nav-btn absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                                    ‹
+                                </button>
+                                <button onclick="nextImage(${product.id})" class="image-nav-btn absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-opacity-70">
+                                    ›
+                                </button>
+                            ` : ''}
+                            
+                            <!-- Current Section Name -->
+                            <div class="section-indicator absolute top-2 left-2 text-white px-2 py-1 rounded text-xs font-medium" id="section-${product.id}">
+                                ${firstSection.name || 'Seção 1'}
+                            </div>
+                            
+                            <!-- Photo Counter -->
+                            <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs" id="counter-${product.id}">
+                                1/${firstSection.photos.length}
+                            </div>
+                            
+                            <!-- Total Photos Badge -->
+                            <div class="absolute bottom-2 left-2 bg-amber-500 text-white px-2 py-1 rounded text-xs font-medium">
+                                📸 ${totalPhotos} fotos • ${totalSections} seções
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">${product.title}</h3>
+                            ${product.desc ? `<p class="text-gray-600 text-sm mb-3">${product.desc}</p>` : ''}
+                            ${product.price ? `<p class="text-amber-600 font-bold text-lg mb-3">${product.price}</p>` : ''}
+                            ${product.phone ? `<p class="text-blue-600 font-medium text-sm mb-3">📞 ${product.phone}</p>` : ''}
+                            <p class="text-xs text-gray-400 mb-3">📅 ${new Date(product.createdAt).toLocaleDateString('pt-BR')}</p>
+                            ${isAdmin ? `
+                                <div class="flex gap-2">
+                                    <button onclick="editProduct(${product.id})" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                                        ✏️ Editar
+                                    </button>
+                                    <button onclick="showDeleteModal(${product.id})" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors">
+                                        🗑️ Excluir
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Show admin interface
+        function showAdminInterface() {
+            adminStatus.classList.remove('hidden');
+            addProductForm.classList.remove('hidden');
+            adminBtn.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
+            initializePhotoSections();
+            renderProducts();
+        }
+
+        // Hide admin interface
+        function hideAdminInterface() {
+            adminStatus.classList.add('hidden');
+            addProductForm.classList.add('hidden');
+            adminBtn.classList.remove('hidden');
+            logoutBtn.classList.add('hidden');
+            clearForm();
+            renderProducts();
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('productTitle').value = '';
+            document.getElementById('productDesc').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productPhone').value = '';
+            document.getElementById('photoSections').innerHTML = '';
+            document.getElementById('cancelEdit').classList.add('hidden');
+            allPhotos = {};
+            sectionCounter = 0;
+            editingProduct = null;
+        }
+
+        // Initialize with one section
+        function initializePhotoSections() {
+            if (document.getElementById('photoSections').children.length === 0) {
+                createPhotoSection('Fotos Principais');
+            }
+        }
+
+        // Edit product
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            editingProduct = product;
+            document.getElementById('productTitle').value = product.title;
+            document.getElementById('productDesc').value = product.desc || '';
+            document.getElementById('productPrice').value = product.price || '';
+            document.getElementById('productPhone').value = product.phone || '';
+            
+            // Clear existing sections
+            document.getElementById('photoSections').innerHTML = '';
+            allPhotos = {};
+            sectionCounter = 0;
+            
+            // Load existing photo sections
+            if (product.photoSections && product.photoSections.length > 0) {
+                product.photoSections.forEach(section => {
+                    createPhotoSection(section.name, section.photos || []);
+                });
+            } else {
+                initializePhotoSections();
+            }
+            
+            document.getElementById('cancelEdit').classList.remove('hidden');
+            addProductForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Show delete modal
+        function showDeleteModal(id) {
+            deleteProductId = id;
+            deleteModal.classList.add('active');
+        }
+
+        // Delete product
+        function deleteProduct() {
+            if (deleteProductId) {
+                products = products.filter(p => p.id !== deleteProductId);
+                saveProducts();
+                renderProducts();
+                deleteProductId = null;
+            }
+            deleteModal.classList.remove('active');
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', renderProducts);
+
+        adminBtn.addEventListener('click', () => {
+            adminModal.classList.add('active');
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            isAdmin = false;
+            hideAdminInterface();
+        });
+
+        document.getElementById('closeModal').addEventListener('click', () => {
+            adminModal.classList.remove('active');
+            document.getElementById('adminEmail').value = '';
+            document.getElementById('adminPassword').value = '';
+        });
+
+        document.getElementById('cancelEdit').addEventListener('click', () => {
+            clearForm();
+            initializePhotoSections();
+        });
+
+        document.getElementById('cancelDelete').addEventListener('click', () => {
+            deleteModal.classList.remove('active');
+            deleteProductId = null;
+        });
+
+        document.getElementById('confirmDelete').addEventListener('click', deleteProduct);
+
+        // Add section button
+        document.getElementById('addPhotoSection').addEventListener('click', () => {
+            createPhotoSection();
+        });
+
+        // Admin login form
+        document.getElementById('adminForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+
+            if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                showAdminInterface();
+                adminModal.classList.remove('active');
+                document.getElementById('adminEmail').value = '';
+                document.getElementById('adminPassword').value = '';
+                showMessage('✅ Acesso de administrador ativado!');
+            } else {
+                showMessage('❌ Credenciais inválidas!', 'error');
+            }
+        });
+
+        // Product form
+        document.getElementById('productForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('productTitle').value.trim();
+            if (!title) {
+                showMessage('❌ Coloque um título para o anúncio!', 'error');
+                return;
+            }
+
+            const desc = document.getElementById('productDesc').value.trim();
+            const price = document.getElementById('productPrice').value.trim();
+            const phone = document.getElementById('productPhone').value.trim();
+            
+            // Collect photo sections
+            const photoSections = [];
+            const sections = document.querySelectorAll('#photoSections > div');
+            
+            sections.forEach(section => {
+                const sectionId = section.id;
+                const nameInput = section.querySelector('.section-name');
+                const sectionName = nameInput ? nameInput.value.trim() : '';
+                const photos = allPhotos[sectionId] || [];
+                
+                if (photos.length > 0) {
+                    photoSections.push({
+                        name: sectionName || 'Sem nome',
+                        photos: photos
+                    });
+                }
+            });
+
+            const product = {
+                id: editingProduct ? editingProduct.id : Date.now(),
+                title,
+                desc,
+                price,
+                phone,
+                photoSections,
+                createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
+            };
+
+            if (editingProduct) {
+                const index = products.findIndex(p => p.id === product.id);
+                products[index] = product;
+            } else {
+                products.unshift(product);
+            }
+
+            saveProducts();
+            renderProducts();
+            clearForm();
+            initializePhotoSections();
+
+            showMessage(editingProduct ? '✅ Anúncio atualizado!' : '✅ Anúncio adicionado!');
+        });
+
+        // Close modals when clicking outside
+        adminModal.addEventListener('click', (e) => {
+            if (e.target === adminModal) {
+                adminModal.classList.remove('active');
+            }
+        });
+
+        deleteModal.addEventListener('click', (e) => {
+            if (e.target === deleteModal) {
+                deleteModal.classList.remove('active');
+            }
+        });
+
+        // Initialize app
+        loadProducts();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'994b1f4664ef9096',t:'MTc2MTQ5Mzk2MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
